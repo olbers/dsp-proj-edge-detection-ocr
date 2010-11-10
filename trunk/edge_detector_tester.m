@@ -16,7 +16,8 @@ subplot(1,2,1)
 image(sample)
 
 subplot(1,2,2)
-%image(robertscross(sample))
-%image(prewitt(sample))
-image(sobel(sample))
+[edge_image, angle_image] = robertscross(sample);
+edge_image = edge_image / max(edge_image(:));
+
+image(edge_image)
 

@@ -175,12 +175,18 @@ global original_image;
 kernel_types = ['Sobel' 'Prewitt' 'Roberts Cross'];
 if ismember(value, kernel_types)
    [edge_image angle_image] = kernel_operator(original_image, value);
+elseif strcmp(value, 'Differential')
+    [edge_image] = differential_detector(original_image);
+elseif strcmp(value, 'Canny')
+    im = original_image;
+    [edge_image] = edge(im, 'canny');
+    edge_image = edge_image * 1.0;
 else
     draw_image = 0;
 end
 
 if draw_image
-    edge_image = edge_image / max(edge_image(:));
+    edge_image = edge_image ./ max(edge_image(:));
     imshow(matrixToImage(edge_image))
 end
 % hObject    handle to popupmenu2 (see GCBO)

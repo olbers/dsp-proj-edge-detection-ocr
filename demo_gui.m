@@ -47,7 +47,9 @@ function loadImageFromFile(filename, handles)
 global original_image;
 global smoothed_image;
 global smoothed_axes;
+global edge_detect_axes;
 smoothed_axes = handles.smoothed_axes;
+edge_detect_axes = handles.edge_detect_axes;
 original_image = double(rgb2gray(imread(filename))) / 255.0;
 smoothed_image = original_image;
 MAX_SIZE = 400;
@@ -200,7 +202,7 @@ else
     setting = 'off';
 end
 
-for i=1:size(canny_params)
+for i=1:length(canny_params)
     set(canny_params(i), 'Visible', setting);
 end
 
@@ -209,7 +211,8 @@ if ismember(value, kernel_types)
 elseif strcmp(value, 'Differential')
     [edge_image] = differential_detector(smoothed_image);
 elseif strcmp(value, 'Canny')
-    % TODO 
+    % TODO insert Chandra's code
+    draw_image = 0; % And take this out
 else
     draw_image = 0;
 end
@@ -430,7 +433,8 @@ function low_thresh_edit_Callback(hObject, eventdata, handles)
 
 % Hints: get(hObject,'String') returns contents of low_thresh_edit as text
 %        str2double(get(hObject,'String')) returns contents of low_thresh_edit as a double
-
+val = str2num(get(hObject,'String'));
+set(handles.low_thresh_slider, 'Value', val);
 
 % --- Executes during object creation, after setting all properties.
 function low_thresh_edit_CreateFcn(hObject, eventdata, handles)
@@ -453,7 +457,8 @@ function high_thresh_edit_Callback(hObject, eventdata, handles)
 
 % Hints: get(hObject,'String') returns contents of high_thresh_edit as text
 %        str2double(get(hObject,'String')) returns contents of high_thresh_edit as a double
-
+val = str2num(get(hObject, 'String'));
+set(handles.high_thresh_slider, 'Value', val);
 
 % --- Executes during object creation, after setting all properties.
 function high_thresh_edit_CreateFcn(hObject, eventdata, handles)
@@ -476,7 +481,8 @@ function low_thresh_slider_Callback(hObject, eventdata, handles)
 
 % Hints: get(hObject,'Value') returns position of slider
 %        get(hObject,'Min') and get(hObject,'Max') to determine range of slider
-
+val = num2str(get(hObject,'Value'));
+set(handles.low_thresh_edit, 'String', val);
 
 % --- Executes during object creation, after setting all properties.
 function low_thresh_slider_CreateFcn(hObject, eventdata, handles)
@@ -498,7 +504,8 @@ function high_thresh_slider_Callback(hObject, eventdata, handles)
 
 % Hints: get(hObject,'Value') returns position of slider
 %        get(hObject,'Min') and get(hObject,'Max') to determine range of slider
-
+val = num2str(get(hObject, 'Value'));
+set(handles.high_thresh_edit, 'String', val);
 
 % --- Executes during object creation, after setting all properties.
 function high_thresh_slider_CreateFcn(hObject, eventdata, handles)

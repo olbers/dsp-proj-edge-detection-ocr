@@ -22,7 +22,7 @@ function varargout = demo_gui(varargin)
 
 % Edit the above text to modify the response to help demo_gui
 
-% Last Modified by GUIDE v2.5 09-Nov-2010 19:13:26
+% Last Modified by GUIDE v2.5 16-Nov-2010 13:48:02
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -45,24 +45,47 @@ end
 
 function loadImageFromFile(filename, handles)
 global original_image;
-original_image = rgb2gray(imread(filename));
+global smoothed_image;
+global smoothed_axes;
+smoothed_axes = handles.smoothed_axes;
+original_image = double(rgb2gray(imread(filename))) / 255.0;
+smoothed_image = original_image;
 MAX_SIZE = 400;
 im_size = size(original_image);
 mx = max(im_size);
 if mx > MAX_SIZE
    im_size = im_size * MAX_SIZE / mx; 
 end
-axes(handles.axes1)
+axes(handles.original_axes)
 imshow(original_image)
-new_coords = resizeControl(handles.axes1, [im_size(2) im_size(1)]);
-resizeControl(handles.axes2, [im_size(2) im_size(1)]);
-moveControl(handles.axes2, [new_coords(1) + im_size(2) + 10, new_coords(2)]);
-panel_pos = getpixelposition(handles.uipanel3);
-moveControl(handles.uipanel3, [new_coords(1), new_coords(2) - panel_pos(4)]);
+%new_coords = resizeControl(handles.original_axes, [im_size(2) im_size(1)]);
+%resizeControl(handles.axes2, [im_size(2) im_size(1)]);
+%moveControl(handles.axes2, [new_coords(1) + im_size(2) + 10, new_coords(2)]);
+%panel_pos = getpixelposition(handles.uipanel3);
+%moveControl(handles.uipanel3, [new_coords(1), new_coords(2) - panel_pos(4)]);
 
-axes(handles.axes2)
+axes(handles.smoothed_axes)
+imshow(smoothed_image)
+
+axes(handles.edges_axes)
+imshow(ones([round(im_size), 3]))
+
+axes(handles.application_axes)
 imshow(ones([round(im_size), 3]))
 popupmenu2_Callback(handles.popupmenu2, {}, handles)
+
+function applySmoothing(type, stdev)
+global original_image;
+global smoothed_image;
+global smoothed_axes;
+if strcmp(type, 'None') || stdev == 0.0
+    smoothed_image = original_image;
+elseif strcmp(type, 'Gaussian Smoothing')
+    smoothed_image = conv2(double(original_image), fspecial('gaussian', 9, stdev), 'same');
+end
+axes(smoothed_axes);
+imshow(smoothed_image);
+
 
 function [cur_pos] = resizeControl(handle, new_size)
 cur_pos = getpixelposition(handle);
@@ -89,10 +112,18 @@ handles.output = hObject;
 
 global original_image;
 original_image = ones(50,50,3);
-axes(handles.axes1)
+axes(handles.original_axes)
 imshow(original_image)
-axes(handles.axes2)
+
+axes(handles.smoothed_axes)
 imshow(original_image)
+
+axes(handles.edges_axes)
+imshow(original_image)
+
+axes(handles.application_axes)
+imshow(original_image)
+
 
 global lookup_table;
 lookup_table = java.util.Hashtable;
@@ -113,18 +144,6 @@ function varargout = demo_gui_OutputFcn(hObject, eventdata, handles)
 
 % Get default command line output from handles structure
 varargout{1} = handles.output;
-
-
-% --- Executes on button press in pushbutton1.
-function pushbutton1_Callback(hObject, eventdata, handles)
-axes(handles.axes2)
-x = 0:10;
-y = x.^2;
-plot(x,y)
-xlabel('X values')
-% hObject    handle to pushbutton1 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
 
 
 % --- Executes on selection change in listbox2.
@@ -167,20 +186,30 @@ img(1:end,1:end,3) = mat;
 function popupmenu2_Callback(hObject, eventdata, handles)
 contents = cellstr(get(hObject,'String'));
 value = contents{get(hObject,'Value')};
-axes(handles.axes2);
+axes(handles.edges_axes);
 
 draw_image = 1;
 global original_image;
+global smoothed_image;
 
 kernel_types = ['Sobel' 'Prewitt' 'Roberts Cross'];
+canny_params = [handles.low_thresh_label handles.low_thresh_edit handles.low_thresh_slider handles.high_thresh_edit handles.high_thresh_label handles.high_thresh_slider];
+if strcmp(value, 'Canny')
+    setting = 'on';
+else
+    setting = 'off';
+end
+
+for i=1:size(canny_params)
+    set(canny_params(i), 'Visible', setting);
+end
+
 if ismember(value, kernel_types)
-   [edge_image angle_image] = kernel_operator(original_image, value);
+   [edge_image angle_image] = kernel_operator(smoothed_image, value);
 elseif strcmp(value, 'Differential')
-    [edge_image] = differential_detector(original_image);
+    [edge_image] = differential_detector(smoothed_image);
 elseif strcmp(value, 'Canny')
-    im = original_image;
-    [edge_image] = edge(im, 'canny');
-    edge_image = edge_image * 1.0;
+    % TODO 
 else
     draw_image = 0;
 end
@@ -210,22 +239,14 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
 end
 
 % --- Executes during object creation, after setting all properties.
-function axes1_CreateFcn(hObject, eventdata, handles)
+function original_axes_CreateFcn(hObject, eventdata, handles)
 
-% hObject    handle to axes1 (see GCBO)
+% hObject    handle to original_axes (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
 
-% Hint: place code in OpeningFcn to populate axes1
+% Hint: place code in OpeningFcn to populate original_axes
 
-
-% --- Executes during object creation, after setting all properties.
-function axes2_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to axes2 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: place code in OpeningFcn to populate axes2
 
 
 % --- Executes on button press in pushbutton2.
@@ -303,3 +324,189 @@ function figure1_ResizeFcn(hObject, eventdata, handles)
 % hObject    handle to figure1 (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+
+
+% --- Executes on selection change in popupmenu4.
+function popupmenu4_Callback(hObject, eventdata, handles)
+% hObject    handle to popupmenu4 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: contents = cellstr(get(hObject,'String')) returns popupmenu4 contents as cell array
+%        contents{get(hObject,'Value')} returns selected item from popupmenu4
+contents = cellstr(get(hObject,'String'));
+value = contents{get(hObject,'Value')};
+gauss_smooth_objs = [handles.gauss_smooth_stdev_edit handles.gauss_smooth_stdev_slider handles.gauss_smooth_stdev_label];
+if strcmp(value, 'Gaussian Smoothing')
+    bool = 'on';
+else
+    bool = 'off';
+end
+for i=1:length(gauss_smooth_objs)
+    set(gauss_smooth_objs(i), 'Visible', bool); 
+end
+stdev = get(handles.gauss_smooth_stdev_slider, 'Value');
+applySmoothing(value, stdev);
+
+% --- Executes during object creation, after setting all properties.
+function popupmenu4_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to popupmenu4 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: popupmenu controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+% --- Executes on slider movement.
+function gauss_smooth_stdev_slider_Callback(hObject, eventdata, handles)
+% hObject    handle to gauss_smooth_stdev_slider (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'Value') returns position of slider
+%        get(hObject,'Min') and get(hObject,'Max') to determine range of slider
+global gauss_smooth_edit_box;
+val = num2str(get(hObject, 'Value'));
+set(handles.gauss_smooth_stdev_edit, 'String', val);
+applySmoothing('Gaussian Smoothing', str2num(val));
+
+% --- Executes during object creation, after setting all properties.
+function gauss_smooth_stdev_slider_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to gauss_smooth_stdev_slider (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: slider controls usually have a light gray background.
+if isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor',[.9 .9 .9]);
+end
+%hListener = handle.listener(hObject, 'ActionEvent', @gauss_smooth_stdev_slider_Callback);
+%lh1 = addlistener(hObject,'Action',@gauss_smooth_stdev_slider_Callback);
+%global gauss_smooth_edit_box;
+%gauss_smooth_edit_box = handles.gauss_smooth_stdev_edit;
+
+
+function gauss_smooth_stdev_edit_Callback(hObject, eventdata, handles)
+% hObject    handle to gauss_smooth_stdev_edit (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of gauss_smooth_stdev_edit as text
+%        str2double(get(hObject,'String')) returns contents of gauss_smooth_stdev_edit as a double
+val = str2num(get(hObject,'String'));
+set(handles.gauss_smooth_stdev_slider, 'Value', val);
+applySmoothing('Gaussian Smoothing', val);
+
+% --- Executes during object creation, after setting all properties.
+function gauss_smooth_stdev_edit_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to gauss_smooth_stdev_edit (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+% --- If Enable == 'on', executes on mouse press in 5 pixel border.
+% --- Otherwise, executes on mouse press in 5 pixel border or over gauss_smooth_stdev_slider.
+function gauss_smooth_stdev_slider_ButtonDownFcn(hObject, eventdata, handles)
+% hObject    handle to gauss_smooth_stdev_slider (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+
+
+function low_thresh_edit_Callback(hObject, eventdata, handles)
+% hObject    handle to low_thresh_edit (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of low_thresh_edit as text
+%        str2double(get(hObject,'String')) returns contents of low_thresh_edit as a double
+
+
+% --- Executes during object creation, after setting all properties.
+function low_thresh_edit_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to low_thresh_edit (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+
+function high_thresh_edit_Callback(hObject, eventdata, handles)
+% hObject    handle to high_thresh_edit (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of high_thresh_edit as text
+%        str2double(get(hObject,'String')) returns contents of high_thresh_edit as a double
+
+
+% --- Executes during object creation, after setting all properties.
+function high_thresh_edit_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to high_thresh_edit (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+% --- Executes on slider movement.
+function low_thresh_slider_Callback(hObject, eventdata, handles)
+% hObject    handle to low_thresh_slider (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'Value') returns position of slider
+%        get(hObject,'Min') and get(hObject,'Max') to determine range of slider
+
+
+% --- Executes during object creation, after setting all properties.
+function low_thresh_slider_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to low_thresh_slider (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: slider controls usually have a light gray background.
+if isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor',[.9 .9 .9]);
+end
+
+
+% --- Executes on slider movement.
+function high_thresh_slider_Callback(hObject, eventdata, handles)
+% hObject    handle to high_thresh_slider (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'Value') returns position of slider
+%        get(hObject,'Min') and get(hObject,'Max') to determine range of slider
+
+
+% --- Executes during object creation, after setting all properties.
+function high_thresh_slider_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to high_thresh_slider (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: slider controls usually have a light gray background.
+if isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor',[.9 .9 .9]);
+end

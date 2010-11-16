@@ -9,15 +9,17 @@ end
 Gaussian_Kernel = (1/159)*[2 4 5 4 2;4 9 12 9 4;5 12 15 12 5;4 9 12 9 4;2 4 5 4 2];
 %original_image = convn(original_image, Gaussian_Kernel, 'same');
 
-Kx = [[-1 0 1];[-1 0 1];[-1 0 1]];
-Ky = [[-1 -1 -1];[0 0 0];[1 1 1]];
-Kxx = [1 -2 1];
-Kxy = [-1/4 0 1/4;0 0 0;1/4 0 -1/4];
+global smoothed_image;
+original_image = smoothed_image;
+Kx = [-1/2 0 1/2];
+Ky = Kx';
+Kxx = [1/4 -1/2 1/4]*4.0;
+Kxy = [-1 0 1;0 0 0;1 0 -1]/4.0;
 Kyy = Kxx';
-Kxxy = [1/4 -1/2 1/4;0 0 0;-1/4 1/2 -1/4];
-Kxyy = Kxxy';
-Kxxx = [-1 2 0 -2 1];
-Kyyy = Kxxx';
+Kxxy = conv2(Kx,Kxy);
+Kxyy = conv2(Kx,Kyy);
+Kxxx = conv2(Kx,Kxx);
+Kyyy = conv2(Ky,Kyy);
 
 Lx = convn(original_image, Kx, 'same');
 Ly = convn(original_image, Ky, 'same');
@@ -36,16 +38,16 @@ d2 = (Lx.^3) .* Lxxx + 3*(Lx.^2).*Ly.*Lxxy + 3*Lx.*(Ly.^2).*Lxyy + (Ly.^3).*Lyyy
 [m,n] = size(original_image);
 edge_image = zeros(m,n);
 for i=1:size(original_image(:))
-    if d2(i) < -10 && d1(i) == 0
-        edge_image(i) = 1;
-    elseif d2(i) < -10
-        edge_image(i) = 0.5;
-    elseif d1(i) == 0
+    if d2(i) < 0 && abs(d1(i)) <= 0.0001
+        edge_image(i) = 1.0;
+    elseif d2(i) < 0
+        edge_image(i) = 0;
+    elseif abs(d1(i)) <= 0.1
         edge_image(i) = 0;
     else
-        edge_image(i) = 0;
+        edge_image(i) = 0.0;
     end
 end
-
+%edge_image = convn(original_image, Gaussian_Kernel, 'same');
 
 end

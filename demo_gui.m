@@ -22,7 +22,7 @@ function varargout = demo_gui(varargin)
 
 % Edit the above text to modify the response to help demo_gui
 
-% Last Modified by GUIDE v2.5 20-Nov-2010 20:20:49
+% Last Modified by GUIDE v2.5 21-Nov-2010 14:15:35
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -45,6 +45,7 @@ end
 
 function loadImageFromFile(filename, handles)
 global original_image;
+global original_image_noise;
 global smoothed_image;
 global smoothed_axes;
 global edges_axes;
@@ -52,6 +53,7 @@ smoothed_axes = handles.smoothed_axes;
 edges_axes = handles.edges_axes;
 original_image = double(rgb2gray(imread(filename))) / 255.0;
 smoothed_image = original_image;
+original_image_noise = original_image;
 MAX_SIZE = 400;
 im_size = size(original_image);
 mx = max(im_size);
@@ -75,13 +77,37 @@ imshow(ones([round(im_size), 3]))
 axes(handles.application_axes)
 imshow(ones([round(im_size), 3]))
 
-function applySmoothing(handles)
+function applyNoise(handles)
+enable_gauss = get(handles.enable_gaussian_noise, 'Value');
+enable_sp = get(handles.enable_sp_noise, 'Value');
+enable_speckle = get(handles.enable_speckle_noise, 'Value');
 global original_image;
+global original_image_noise;
+original_image_noise = original_image;
+if enable_speckle
+    v = str2num(get(handles.noise_speckle_v_edit,'String'));
+    original_image_noise = imnoise(original_image_noise, 'speckle', v);
+end
+if enable_gauss
+    m = str2num(get(handles.noise_gauss_m_edit,'String'));
+    v = str2num(get(handles.noise_gauss_v_edit,'String'));
+    original_image_noise = imnoise(original_image_noise, 'gaussian', m, v);
+end
+if enable_sp
+    d = str2num(get(handles.noise_sp_density_edit,'String'));
+    original_image_noise = imnoise(original_image_noise, 'salt & pepper', d);
+end
+axes(handles.original_axes)
+imshow(original_image_noise);
+applySmoothing(handles);
+
+function applySmoothing(handles)
 global smoothed_image;
 global smoothed_axes;
 global smooth_stdev_slider;
 global smooth_size_popup;
 global smoothing_type;
+global original_image_noise;
 
 size_contents = cellstr(get(smooth_size_popup,'String'));
 size = size_contents{get(smooth_size_popup,'Value')};
@@ -89,9 +115,13 @@ size = size_contents{get(smooth_size_popup,'Value')};
 stdev = get(smooth_stdev_slider, 'Value');
 dim = str2num(size(1:strfind(size,'x')-1));
 if strcmp(smoothing_type, 'None') || stdev == 0.0
-    smoothed_image = original_image;
+    smoothed_image = original_image_noise;
 elseif strcmp(smoothing_type, 'Gaussian Smoothing')
-    smoothed_image = conv2(double(original_image), fspecial('gaussian', dim, stdev), 'same');
+    smoothed_image = conv2(double(original_image_noise), fspecial('gaussian', dim, stdev), 'same');
+elseif strcmp(smoothing_type, 'Mean Filtering')
+    smoothed_image = conv2(double(original_image_noise), fspecial('average', dim), 'same');
+elseif strcmp(smoothing_type, 'Median Filtering')
+    smoothed_image = medfilt2(original_image_noise, [dim dim]);
 end
 axes(smoothed_axes);
 imshow(smoothed_image);
@@ -161,15 +191,20 @@ global smoothing_gauss;
 global edges_canny;
 global edges_kernelops;
 global edges_differential;
+global smoothing_mean;
+global smoothing_median;
 global smoothing_type;
 global edge_detect_type;
 edge_detect_type = '';
+smoothing_type = '';
 smoothing_all = [handles.smooth_stdev_label;
     handles.smooth_stdev_edit;
     handles.smooth_stdev_slider;
     handles.smooth_size_label;
     handles.smooth_size_popup];
 smoothing_gauss = smoothing_all(1:5);
+smoothing_mean = smoothing_all(4:5);
+smoothing_median = smoothing_all(4:5);
 edges_all = [handles.thresholding_label;
     handles.edge_low_thresh_label;
     handles.edge_low_thresh_edit;
@@ -220,6 +255,8 @@ end
 function changeVisibility(type)
 global smoothing_all;
 global smoothing_gauss;
+global smoothing_mean;
+global smoothing_median;
 global edges_all;
 global edges_kernelops;
 global edges_differential;
@@ -237,6 +274,14 @@ elseif strcmp(type, 'Differential')
 elseif strcmp(type, 'Canny')
     showFields(edges_all, 'off');
     showFields(edges_canny, 'on');
+elseif strcmp(type, 'None')
+    showFields(smoothing_all, 'off');
+elseif strcmp(type, 'Mean Filtering')
+    showFields(smoothing_all, 'off');
+    showFields(smoothing_mean, 'on');
+elseif strcmp(type, 'Median Filtering')
+    showFields(smoothing_all, 'off');
+    showFields(smoothing_median, 'on');
 end
 
 % --- Outputs from this function are returned to the command line.
@@ -611,6 +656,125 @@ function smooth_size_popup_CreateFcn(hObject, eventdata, handles)
 % handles    empty - handles not created until after all CreateFcns called
 
 % Hint: popupmenu controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+% --- Executes on button press in enable_gaussian_noise.
+function enable_gaussian_noise_Callback(hObject, eventdata, handles)
+% hObject    handle to enable_gaussian_noise (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of enable_gaussian_noise
+applyNoise(handles);
+
+% --- Executes on button press in enable_sp_noise.
+function enable_sp_noise_Callback(hObject, eventdata, handles)
+% hObject    handle to enable_sp_noise (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of enable_sp_noise
+applyNoise(handles);
+
+% --- Executes on button press in enable_speckle_noise.
+function enable_speckle_noise_Callback(hObject, eventdata, handles)
+% hObject    handle to enable_speckle_noise (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of enable_speckle_noise
+applyNoise(handles);
+
+
+function noise_gauss_m_edit_Callback(hObject, eventdata, handles)
+% hObject    handle to noise_gauss_m_edit (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of noise_gauss_m_edit as text
+%        str2double(get(hObject,'String')) returns contents of noise_gauss_m_edit as a double
+applyNoise(handles);
+
+% --- Executes during object creation, after setting all properties.
+function noise_gauss_m_edit_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to noise_gauss_m_edit (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+
+function noise_gauss_v_edit_Callback(hObject, eventdata, handles)
+% hObject    handle to noise_gauss_v_edit (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of noise_gauss_v_edit as text
+%        str2double(get(hObject,'String')) returns contents of noise_gauss_v_edit as a double
+applyNoise(handles);
+
+% --- Executes during object creation, after setting all properties.
+function noise_gauss_v_edit_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to noise_gauss_v_edit (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+
+function noise_sp_density_edit_Callback(hObject, eventdata, handles)
+% hObject    handle to noise_sp_density_edit (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of noise_sp_density_edit as text
+%        str2double(get(hObject,'String')) returns contents of noise_sp_density_edit as a double
+applyNoise(handles);
+
+% --- Executes during object creation, after setting all properties.
+function noise_sp_density_edit_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to noise_sp_density_edit (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+
+function noise_speckle_v_edit_Callback(hObject, eventdata, handles)
+% hObject    handle to noise_speckle_v_edit (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of noise_speckle_v_edit as text
+%        str2double(get(hObject,'String')) returns contents of noise_speckle_v_edit as a double
+applyNoise(handles);
+
+% --- Executes during object creation, after setting all properties.
+function noise_speckle_v_edit_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to noise_speckle_v_edit (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
 %       See ISPC and COMPUTER.
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');

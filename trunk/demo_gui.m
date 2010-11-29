@@ -72,10 +72,10 @@ axes(handles.smoothed_axes)
 imshow(smoothed_image)
 
 axes(handles.edges_axes)
-imshow(ones([round(im_size), 3]))
+imshow(ones(300,300,3))
 
 axes(handles.application_axes)
-imshow(ones([round(im_size), 3]))
+imshow(ones(300,300,3))
 
 function applyNoise(handles)
 enable_gauss = get(handles.enable_gaussian_noise, 'Value');
@@ -149,8 +149,7 @@ if ismember(edge_detect_type, kernel_types)
 elseif strcmp(edge_detect_type, 'Differential')
    [edge_image] = differential_detector(smoothed_image);
 elseif strcmp(edge_detect_type, 'Canny')
-    % TODO insert Chandra's code
-    draw_image = 0; % And take this out
+    [edge_image] = Canny_detector(smoothed_image, str2num(get(handles.smooth_stdev_edit,'String')), get(handles.edge_low_thresh_slider,'Value'), get(handles.edge_high_thresh_slider,'Value'));
 else
     draw_image = 0;
 end
@@ -325,11 +324,14 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
 end
 
 function img = matrixToImage(mat)
+maxsize = 300;
 [m,n] = size(mat);
+scale = max(m/maxsize, n/maxsize);
 img = zeros(m,n,3);
 img(1:end,1:end,1) = mat;
 img(1:end,1:end,2) = mat;
 img(1:end,1:end,3) = mat;
+img = imresize(img,1/scale);
 
 % --- Executes on selection change in edge_type_popup.
 function edge_type_popup_Callback(hObject, eventdata, handles)

@@ -142,7 +142,7 @@ draw_image = 1;
 global smoothed_image;
 global edge_detect_type;
 
-kernel_types = ['Sobel' 'Prewitt' 'Roberts Cross'];
+kernel_types = ['Sobel' 'Prewitt' 'Roberts Cross' 'Scharr Operator'];
 if ismember(edge_detect_type, kernel_types)
    [edge_image angle_image] = kernel_operator(smoothed_image, edge_detect_type);
     edge_image = applyLowThreshold(edge_image, handles);
@@ -260,7 +260,7 @@ global edges_all;
 global edges_kernelops;
 global edges_differential;
 global edges_canny;
-kernel_types = ['Sobel' 'Prewitt' 'Roberts Cross'];
+kernel_types = ['Sobel' 'Prewitt' 'Roberts Cross' 'Scharr Operator'];
 if strcmp(type, 'Gaussian Smoothing')
    showFields(smoothing_all, 'off');
    showFields(smoothing_gauss, 'on');
@@ -416,6 +416,20 @@ elseif strcmp(value, 'CII Building')
     loadImageFromFile('rpi_cii.jpg', handles);
 elseif strcmp(value, 'Lena')
     loadImageFromFile('lena.bmp', handles);
+elseif strcmp(value, 'B.bmp')
+    loadImageFromFile('B.bmp', handles);
+elseif strcmp(value, 'E.bmp')
+    loadImageFromFile('E.bmp', handles);
+elseif strcmp(value, 'M.bmp')
+    loadImageFromFile('M.bmp', handles);
+elseif strcmp(value, 'O.bmp')
+    loadImageFromFile('O.bmp', handles);
+elseif strcmp(value, 'P.bmp')
+    loadImageFromFile('P.bmp', handles);
+elseif strcmp(value, 'S.bmp')
+    loadImageFromFile('S.bmp', handles);
+elseif strcmp(value, 'Z.bmp')
+    loadImageFromFile('Z.bmp', handles);
 elseif strcmp(value, 'Load From File')
     [filename path] = uigetfile('*.*', 'Image Files');
     if filename ~= 0

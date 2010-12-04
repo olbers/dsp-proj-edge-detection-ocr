@@ -1,0 +1,20 @@
+% "Crispens" the image by adding the edges to the original image
+% Note that is the image is of type RGB, it will be converted to grayscale
+% as part of the image pre-processing, and the crispened image will be a
+% grayscale image
+
+
+function [crisp_image] = crisp(edge_image,a)
+
+if length(size(edge_image)) == 3
+    t_image = rgb2gray(edge_image);
+end
+[h,w] = size (edge_image);
+crisp_image = zeros(h,w);
+
+new_image = kernel_operator(t_image, operator_type);
+for i= 1:h
+    for j = 1:w
+        crisp_image(i,j) =(t_image(i,j)+a*new_image(i,j));
+    end
+end

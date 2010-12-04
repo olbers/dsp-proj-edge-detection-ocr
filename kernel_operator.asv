@@ -1,4 +1,4 @@
-% Perform one of the kernel operators 
+% Perform one of the kernel operators
 % Input: 
 %   -the image: an m by n [by d] matrix. If it is RBG (ie d=3) it will
 %   be converted to grayscale (m by n)

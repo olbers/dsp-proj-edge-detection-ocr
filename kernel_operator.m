@@ -6,7 +6,11 @@
 % Output:
 %   -m by n matrix of magnitudes of gradients computed for each pixel
 %   -m by n matrix of directions of gradients computer for each pixel
-function [edge_image, angle_image] = kernel_operator(original_image, operator_type)
+function [edge_image, angle_image] = kernel_operator(original_image, operator_type, outputsizing)
+
+if nargin < 3
+    outputsizing = 'same';
+end
 
 if length(size(original_image)) == 3
     original_image = rgb2gray(original_image);
@@ -31,8 +35,8 @@ else
     return
 end
 
-Gx = convn(original_image, Kx, 'same');
-Gy = convn(original_image, Ky, 'same');
+Gx = convn(original_image, Kx, outputsizing);
+Gy = convn(original_image, Ky, outputsizing);
 
 edge_image = sqrt(Gx.*Gx + Gy.*Gy);
 angle_image = atan2(Gy, Gx);

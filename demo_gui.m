@@ -47,12 +47,14 @@ function loadImageFromFile(filename, handles)
 global original_image;
 global original_image_noise;
 global smoothed_image;
+global smoothed_image_full;
 global smoothed_axes;
 global edges_axes;
 smoothed_axes = handles.smoothed_axes;
 edges_axes = handles.edges_axes;
 original_image = double(rgb2gray(imread(filename))) / 255.0;
 smoothed_image = original_image;
+smoothed_image_full = smoothed_image;
 original_image_noise = original_image;
 MAX_SIZE = 400;
 im_size = size(original_image);
@@ -103,6 +105,7 @@ applySmoothing(handles);
 
 function applySmoothing(handles)
 global smoothed_image;
+global smoothed_image_full;
 global smoothed_axes;
 global smooth_stdev_slider;
 global smooth_size_popup;
@@ -116,12 +119,16 @@ stdev = get(smooth_stdev_slider, 'Value');
 dim = str2num(size(1:strfind(size,'x')-1));
 if strcmp(smoothing_type, 'None') || stdev == 0.0
     smoothed_image = original_image_noise;
+    smoothed_image_full = smoothed_image;
 elseif strcmp(smoothing_type, 'Gaussian Smoothing')
     smoothed_image = conv2(double(original_image_noise), fspecial('gaussian', dim, stdev), 'same');
+    smoothed_image_full = conv2(double(original_image_noise), fspecial('gaussian', dim, stdev), 'full');
 elseif strcmp(smoothing_type, 'Mean Filtering')
     smoothed_image = conv2(double(original_image_noise), fspecial('average', dim), 'same');
+    smoothed_image_full = conv2(double(original_image_noise), fspecial('average', dim), 'full');
 elseif strcmp(smoothing_type, 'Median Filtering')
     smoothed_image = medfilt2(original_image_noise, [dim dim]);
+    smoothed_image_full = smoothed_image;
 end
 axes(smoothed_axes);
 imshow(smoothed_image);
@@ -140,7 +147,9 @@ axes(handles.edges_axes);
 
 draw_image = 1;
 global smoothed_image;
+global smoothed_image_full;
 global edge_detect_type;
+global smooth_size_popup;
 
 kernel_types = ['Sobel' 'Prewitt' 'Roberts Cross' 'Scharr Operator'];
 if ismember(edge_detect_type, kernel_types)
@@ -149,7 +158,12 @@ if ismember(edge_detect_type, kernel_types)
 elseif strcmp(edge_detect_type, 'Differential')
    [edge_image] = differential_detector(smoothed_image);
 elseif strcmp(edge_detect_type, 'Canny')
-    [edge_image] = Canny_detector(smoothed_image, str2num(get(handles.smooth_stdev_edit,'String')), get(handles.edge_low_thresh_slider,'Value'), get(handles.edge_high_thresh_slider,'Value'));
+    size_contents = cellstr(get(smooth_size_popup,'String'));
+    ksize = size_contents{get(smooth_size_popup,'Value')}
+    kernel_size = str2num(ksize(1:strfind(ksize,'x')-1));
+    [mmm,nnn] = size(smoothed_image)
+    [mmmm,nnnn] = size(smoothed_image_full)
+    [edge_image] = Canny_detector(smoothed_image_full, kernel_size, get(handles.edge_low_thresh_slider,'Value'), get(handles.edge_high_thresh_slider,'Value'));
 else
     draw_image = 0;
 end

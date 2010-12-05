@@ -43,17 +43,21 @@ else
 end
 % End initialization code - DO NOT EDIT
 
+function [imagepath] = imagedir(f)
+filename = 'demo_gui.m';
+fullpath = which(filename);
+parentpath = strrep(fullpath,filename,'');
+imagepath = sprintf('%simages\\%s', parentpath, f);
+
 function loadImageFromFile(filename, handles)
 global original_image;
 global original_image_noise;
-global smoothed_image;
-global smoothed_image_full;
 global smoothed_axes;
 global edge_image;
 global edges_axes;
 smoothed_axes = handles.smoothed_axes;
 edges_axes = handles.edges_axes;
-original_image = double(rgb2gray(imread(filename))) / 255.0;
+original_image = double(rgb2gray(imread(imagedir(filename)))) / 255.0;
 %smoothed_image = original_image;
 %smoothed_image_full = smoothed_image;
 original_image_noise = original_image;

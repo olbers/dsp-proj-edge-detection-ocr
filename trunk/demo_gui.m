@@ -22,7 +22,7 @@ function varargout = demo_gui(varargin)
 
 % Edit the above text to modify the response to help demo_gui
 
-% Last Modified by GUIDE v2.5 21-Nov-2010 14:15:35
+% Last Modified by GUIDE v2.5 04-Dec-2010 23:11:50
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -49,13 +49,15 @@ global original_image_noise;
 global smoothed_image;
 global smoothed_image_full;
 global smoothed_axes;
+global edge_image;
 global edges_axes;
 smoothed_axes = handles.smoothed_axes;
 edges_axes = handles.edges_axes;
 original_image = double(rgb2gray(imread(filename))) / 255.0;
-smoothed_image = original_image;
-smoothed_image_full = smoothed_image;
+%smoothed_image = original_image;
+%smoothed_image_full = smoothed_image;
 original_image_noise = original_image;
+edge_image = original_image;
 MAX_SIZE = 400;
 im_size = size(original_image);
 mx = max(im_size);
@@ -63,21 +65,22 @@ if mx > MAX_SIZE
    im_size = im_size * MAX_SIZE / mx; 
 end
 axes(handles.original_axes)
-imshow(original_image)
+applyNoise(handles);
+%imshow(original_image_noi)
 %new_coords = resizeControl(handles.original_axes, [im_size(2) im_size(1)]);
 %resizeControl(handles.axes2, [im_size(2) im_size(1)]);
 %moveControl(handles.axes2, [new_coords(1) + im_size(2) + 10, new_coords(2)]);
 %panel_pos = getpixelposition(handles.uipanel3);
 %moveControl(handles.uipanel3, [new_coords(1), new_coords(2) - panel_pos(4)]);
 
-axes(handles.smoothed_axes)
-imshow(smoothed_image)
+%axes(handles.smoothed_axes)
+%imshow(smoothed_image)
 
-axes(handles.edges_axes)
-imshow(ones(300,300,3))
+%axes(handles.edges_axes)
+%imshow(ones(300,300,3))
 
-axes(handles.application_axes)
-imshow(ones(300,300,3))
+%axes(handles.application_axes)
+%imshow(ones(300,300,3))
 
 function applyNoise(handles)
 enable_gauss = get(handles.enable_gaussian_noise, 'Value');
@@ -129,6 +132,9 @@ elseif strcmp(smoothing_type, 'Mean Filtering')
 elseif strcmp(smoothing_type, 'Median Filtering')
     smoothed_image = medfilt2(original_image_noise, [dim dim]);
     smoothed_image_full = smoothed_image;
+else
+    smoothed_image = original_image_noise;
+    smoothed_image_full = smoothed_image;
 end
 axes(smoothed_axes);
 imshow(smoothed_image);
@@ -150,6 +156,7 @@ global smoothed_image;
 global smoothed_image_full;
 global edge_detect_type;
 global smooth_size_popup;
+global edge_image;
 
 kernel_types = ['Sobel' 'Prewitt' 'Roberts Cross' 'Scharr Operator'];
 if ismember(edge_detect_type, kernel_types)
@@ -159,10 +166,8 @@ elseif strcmp(edge_detect_type, 'Differential')
    [edge_image] = differential_detector(smoothed_image);
 elseif strcmp(edge_detect_type, 'Canny')
     size_contents = cellstr(get(smooth_size_popup,'String'));
-    ksize = size_contents{get(smooth_size_popup,'Value')}
-    kernel_size = str2num(ksize(1:strfind(ksize,'x')-1));
-    [mmm,nnn] = size(smoothed_image)
-    [mmmm,nnnn] = size(smoothed_image_full)
+    ksize = size_contents{get(smooth_size_popup,'Value')};
+    kernel_size = str2double(ksize(1:strfind(ksize,'x')-1));
     [edge_image] = Canny_detector(smoothed_image_full, kernel_size, get(handles.edge_low_thresh_slider,'Value'), get(handles.edge_high_thresh_slider,'Value'));
 else
     draw_image = 0;
@@ -171,7 +176,17 @@ end
 if draw_image
     edge_image = edge_image ./ max(edge_image(:));
     imshow(matrixToImage(edge_image))
+    applyCrispening(handles)
 end
+
+function applyCrispening(handles)
+global smoothed_image;
+global edge_image;
+crispening_factor = get(handles.crisp_factor_slider,'Value');
+crisp_image = crisp(smoothed_image, edge_image, crispening_factor);
+axes(handles.application_axes);
+imshow(crisp_image)
+
 
 function [cur_pos] = resizeControl(handle, new_size)
 cur_pos = getpixelposition(handle);
@@ -377,7 +392,7 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
 end
 
 % --- Executes during object creation, after setting all properties.
-function original_axes_CreateFcn(hObject, eventdata, handles)
+function original_axes_CreateFcn(~, eventdata, handles)
 
 % hObject    handle to original_axes (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
@@ -808,4 +823,76 @@ function noise_speckle_v_edit_CreateFcn(hObject, eventdata, handles)
 %       See ISPC and COMPUTER.
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
+end
+
+
+% --- Executes on selection change in application_type.
+function application_type_Callback(hObject, eventdata, handles)
+% hObject    handle to application_type (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: contents = cellstr(get(hObject,'String')) returns application_type contents as cell array
+%        contents{get(hObject,'Value')} returns selected item from application_type
+
+
+% --- Executes during object creation, after setting all properties.
+function application_type_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to application_type (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: popupmenu controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+
+function crisp_factor_edit_Callback(hObject, eventdata, handles)
+% hObject    handle to crisp_factor_edit (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of crisp_factor_edit as text
+%        str2double(get(hObject,'String')) returns contents of crisp_factor_edit as a double
+val = str2double(get(hObject,'String'));
+set(handles.crisp_factor_slider,'Value',val);
+applyCrispening(handles);
+
+% --- Executes during object creation, after setting all properties.
+function crisp_factor_edit_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to crisp_factor_edit (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+% --- Executes on slider movement.
+function crisp_factor_slider_Callback(hObject, eventdata, handles)
+% hObject    handle to crisp_factor_slider (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'Value') returns position of slider
+%        get(hObject,'Min') and get(hObject,'Max') to determine range of slider
+val = get(hObject,'Value');
+set(handles.crisp_factor_edit,'String',num2str(val));
+applyCrispening(handles);
+
+% --- Executes during object creation, after setting all properties.
+function crisp_factor_slider_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to crisp_factor_slider (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: slider controls usually have a light gray background.
+if isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor',[.9 .9 .9]);
 end

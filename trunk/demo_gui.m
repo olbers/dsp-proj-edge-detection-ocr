@@ -158,7 +158,7 @@ global edge_detect_type;
 global smooth_size_popup;
 global edge_image;
 
-kernel_types = ['Sobel' 'Prewitt' 'Roberts Cross' 'Scharr Operator'];
+kernel_types = ['Sobel' 'Prewitt' 'Roberts Cross' 'Scharr'];
 if ismember(edge_detect_type, kernel_types)
    [edge_image angle_image] = kernel_operator(smoothed_image, edge_detect_type);
     edge_image = applyLowThreshold(edge_image, handles);
@@ -289,7 +289,7 @@ global edges_all;
 global edges_kernelops;
 global edges_differential;
 global edges_canny;
-kernel_types = ['Sobel' 'Prewitt' 'Roberts Cross' 'Scharr Operator'];
+kernel_types = ['Sobel' 'Prewitt' 'Roberts Cross' 'Scharr'];
 if strcmp(type, 'Gaussian Smoothing')
    showFields(smoothing_all, 'off');
    showFields(smoothing_gauss, 'on');

@@ -22,7 +22,7 @@ function varargout = demo_gui(varargin)
 
 % Edit the above text to modify the response to help demo_gui
 
-% Last Modified by GUIDE v2.5 04-Dec-2010 23:11:50
+% Last Modified by GUIDE v2.5 13-Dec-2010 13:41:48
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -162,17 +162,30 @@ global edge_detect_type;
 global smooth_size_popup;
 global edge_image;
 
+keepgradient = get(handles.cb_keepgradient, 'Value');
+
 kernel_types = ['Sobel' 'Prewitt' 'Roberts Cross' 'Scharr'];
 if ismember(edge_detect_type, kernel_types)
    [edge_image angle_image] = kernel_operator(smoothed_image, edge_detect_type);
-    edge_image = applyLowThreshold(edge_image, handles);
+    edges = applyLowThreshold(edge_image, handles);
+    if keepgradient
+        edge_image = edges .* edge_image;
+    else
+        edge_image = edges;
+    end
 elseif strcmp(edge_detect_type, 'Differential')
    [edge_image] = differential_detector(smoothed_image);
 elseif strcmp(edge_detect_type, 'Canny')
     size_contents = cellstr(get(smooth_size_popup,'String'));
     ksize = size_contents{get(smooth_size_popup,'Value')};
     kernel_size = str2double(ksize(1:strfind(ksize,'x')-1));
-    [edge_image] = Canny_detector(smoothed_image_full, kernel_size, get(handles.edge_low_thresh_slider,'Value'), get(handles.edge_high_thresh_slider,'Value'));
+    [edges] = Canny_detector(smoothed_image_full, kernel_size, get(handles.edge_low_thresh_slider,'Value'), get(handles.edge_high_thresh_slider,'Value'));
+    edge_im = kernel_operator(smoothed_image, 'Sobel');
+    if keepgradient
+        edge_image = edges .* edge_im;
+    else
+        edge_image = edges;
+    end
 else
     draw_image = 0;
 end
@@ -243,10 +256,11 @@ edges_all = [handles.thresholding_label;
     handles.edge_low_thresh_slider;
     handles.edge_high_thresh_label;
     handles.edge_high_thresh_edit;
-    handles.edge_high_thresh_slider];
-edges_canny = edges_all(2:7);
+    handles.edge_high_thresh_slider;
+    handles.cb_keepgradient;];
+edges_canny = edges_all(2:8);
 
-edges_kernelops = edges_all(1:4);
+edges_kernelops = edges_all([1:4,8]);
 edges_differential = [];
     
 global smooth_stdev_slider;
@@ -900,3 +914,13 @@ function crisp_factor_slider_CreateFcn(hObject, eventdata, handles)
 if isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor',[.9 .9 .9]);
 end
+
+
+% --- Executes on button press in cb_keepgradient.
+function cb_keepgradient_Callback(hObject, eventdata, handles)
+% hObject    handle to cb_keepgradient (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of cb_keepgradient
+detectEdges(handles)

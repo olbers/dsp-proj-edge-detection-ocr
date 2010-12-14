@@ -22,7 +22,7 @@ function varargout = demo_gui(varargin)
 
 % Edit the above text to modify the response to help demo_gui
 
-% Last Modified by GUIDE v2.5 13-Dec-2010 13:41:48
+% Last Modified by GUIDE v2.5 14-Dec-2010 15:46:05
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -179,8 +179,14 @@ if ismember(edge_detect_type, kernel_types)
     else
         edge_image = edges;
     end
-elseif strcmp(edge_detect_type, 'Differential')
-   [edge_image] = differential_detector(smoothed_image);
+elseif strcmp(edge_detect_type, 'Laplacian of Gaussian')
+    [edges] = double(edge(smoothed_image, 'log',0.01*get(handles.edge_low_thresh_slider,'Value'),get(handles.log_std_slider,'Value')));
+    edge_im = kernel_operator(smoothed_image, 'Sobel');
+    if keepgradient
+        edge_image = edges .* edge_im;
+    else
+        edge_image = edges;
+    end
 elseif strcmp(edge_detect_type, 'Canny')
     size_contents = cellstr(get(smooth_size_popup,'String'));
     ksize = size_contents{get(smooth_size_popup,'Value')};
@@ -198,7 +204,10 @@ end
 
 if draw_image
     edge_image = edge_image ./ max(edge_image(:));
-    imshow(matrixToImage(edge_image))
+    im = matrixToImage(edge_image);
+    imshow(im);
+    imwrite(imresize(im, 0.45),imagedir('export.png'));
+    
     applyCrispening(handles)
 end
 
@@ -263,11 +272,14 @@ edges_all = [handles.thresholding_label;
     handles.edge_high_thresh_label;
     handles.edge_high_thresh_edit;
     handles.edge_high_thresh_slider;
-    handles.cb_keepgradient;];
+    handles.cb_keepgradient;
+    handles.log_std_label;
+    handles.log_std_text;
+    handles.log_std_slider];
 edges_canny = edges_all(2:8);
 
 edges_kernelops = edges_all([1:4,8]);
-edges_differential = [];
+edges_differential = [edges_all([1:4,8:11])];
     
 global smooth_stdev_slider;
 global smooth_size_popup;
@@ -320,7 +332,7 @@ if strcmp(type, 'Gaussian Smoothing')
 elseif ismember(type, kernel_types)
     showFields(edges_all, 'off');
     showFields(edges_kernelops, 'on');
-elseif strcmp(type, 'Differential')
+elseif strcmp(type, 'Laplacian of Gaussian')
     showFields(edges_all, 'off');
     showFields(edges_differential, 'on');
 elseif strcmp(type, 'Canny')
@@ -469,20 +481,8 @@ elseif strcmp(value, 'CII Building')
     loadImageFromFile('rpi_cii.jpg', handles);
 elseif strcmp(value, 'Lena')
     loadImageFromFile('lena.bmp', handles);
-elseif strcmp(value, 'B.bmp')
-    loadImageFromFile('B.bmp', handles);
-elseif strcmp(value, 'E.bmp')
-    loadImageFromFile('E.bmp', handles);
-elseif strcmp(value, 'M.bmp')
-    loadImageFromFile('M.bmp', handles);
-elseif strcmp(value, 'O.bmp')
-    loadImageFromFile('O.bmp', handles);
-elseif strcmp(value, 'P.bmp')
-    loadImageFromFile('P.bmp', handles);
-elseif strcmp(value, 'S.bmp')
-    loadImageFromFile('S.bmp', handles);
-elseif strcmp(value, 'Z.bmp')
-    loadImageFromFile('Z.bmp', handles);
+elseif strcmp(value, 'Cameraman')
+    loadImageFromFile('cameraman.png', handles);
 elseif strcmp(value, 'Load From File')
     [filename path] = uigetfile('*.*', 'Image Files');
     if filename ~= 0
@@ -930,3 +930,51 @@ function cb_keepgradient_Callback(hObject, eventdata, handles)
 
 % Hint: get(hObject,'Value') returns toggle state of cb_keepgradient
 detectEdges(handles)
+
+
+% --- Executes on slider movement.
+function log_std_slider_Callback(hObject, eventdata, handles)
+% hObject    handle to log_std_slider (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'Value') returns position of slider
+%        get(hObject,'Min') and get(hObject,'Max') to determine range of slider
+set(handles.log_std_text, 'String', num2str(get(hObject, 'Value')));
+detectEdges(handles);
+
+% --- Executes during object creation, after setting all properties.
+function log_std_slider_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to log_std_slider (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: slider controls usually have a light gray background.
+if isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor',[.9 .9 .9]);
+end
+
+
+
+function log_std_text_Callback(hObject, eventdata, handles)
+% hObject    handle to log_std_text (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of log_std_text as text
+%        str2double(get(hObject,'String')) returns contents of log_std_text as a double
+set(handles.log_std_slider, 'Value', str2double(get(hObject,'String')));
+detectEdges(handles);
+
+
+% --- Executes during object creation, after setting all properties.
+function log_std_text_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to log_std_text (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end

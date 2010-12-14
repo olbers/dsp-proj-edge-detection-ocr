@@ -111,6 +111,7 @@ imshow(original_image_noise);
 applySmoothing(handles);
 
 function applySmoothing(handles)
+global original_image;
 global smoothed_image;
 global smoothed_image_full;
 global smoothed_axes;
@@ -142,6 +143,11 @@ else
 end
 axes(smoothed_axes);
 imshow(smoothed_image);
+
+%Compute signal to noise ratio
+snr = sum(smoothed_image(:).^2) / sum((smoothed_image(:)-original_image(:)).^2);
+set(handles.snr_text, 'String', sprintf('%f dB', 10*log10(snr)));
+
 detectEdges(handles);
 
 function new_image = applyLowThreshold(the_image, handles)

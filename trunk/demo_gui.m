@@ -108,6 +108,7 @@ if enable_sp
 end
 axes(handles.original_axes)
 imshow(original_image_noise);
+imwrite(original_image_noise, imagedir('original_noise.png'));
 applySmoothing(handles);
 
 function applySmoothing(handles)
@@ -142,6 +143,7 @@ else
     smoothed_image_full = smoothed_image;
 end
 axes(smoothed_axes);
+imwrite(smoothed_image, imagedir('smoothed_image.png'));
 imshow(smoothed_image);
 
 %Compute signal to noise ratio
@@ -206,7 +208,7 @@ if draw_image
     edge_image = edge_image ./ max(edge_image(:));
     im = matrixToImage(edge_image);
     imshow(im);
-    imwrite(imresize(im, 0.45),imagedir('export.png'));
+    imwrite(im,imagedir('edge_image.png'));
     
     applyCrispening(handles)
 end
@@ -217,6 +219,7 @@ global edge_image;
 crispening_factor = get(handles.crisp_factor_slider,'Value');
 crisp_image = crisp(smoothed_image, edge_image, crispening_factor);
 axes(handles.application_axes);
+imwrite(crisp_image, imagedir('crisp_image.png'));
 imshow(crisp_image)
 
 

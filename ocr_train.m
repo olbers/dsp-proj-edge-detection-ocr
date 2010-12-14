@@ -19,7 +19,7 @@ for ttt=1:100
 
 numHiddenNeurons = 10;  % Adjust as desired
 net = newpr(sample_inputs,sample_outputs,numHiddenNeurons);
-net.trainParam.max_fail = 20;
+net.trainParam.max_fail = 100;
 net.divideParam.trainRatio = 80/100;  % Adjust as desired
 net.divideParam.valRatio = 20/100;  % Adjust as desired
 net.divideParam.testRatio = 0/100;  % Adjust as desired
@@ -33,6 +33,9 @@ if performance < best_performance
     best_performance = performance;
     best_net = net;
     best_tr = tr;
+    
+    sprintf('Iteration %d: %f', ttt, best_performance)
+    save('ocr_neural_network', 'best_net','best_tr');
 end
 
 if mod(ttt,10) == 0
@@ -45,9 +48,9 @@ end
 %plotconfusion(sample_outputs,outputs)
 
 end
-compet(sim(best_net, sample_inputs(:,1)))
+%compet(sim(best_net, sample_inputs(:,1)))
 
-save('ocr_neural_network', 'best_net');
+
 
 
 

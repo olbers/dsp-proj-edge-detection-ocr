@@ -2,9 +2,19 @@
 % it's of any use
 
 % Returns a column of feature outputs for a single image
-function data = compute_features(im)
+function data = compute_features(source_im)
 
-    data = [x_symmetry(im) y_symmetry(im) longest_vert_line(im) longest_horiz_line(im)]';
+[im skeleton] = preprocess_image(source_im);
+data = [sum(skeleton(:));
+    length(bwboundaries(im));
+    longest_vert_line(skeleton);
+    longest_horiz_line(skeleton);
+    num_horiz_lines(skeleton);
+    num_vert_lines(skeleton);
+    template1(skeleton);
+    template2(skeleton);
+    num_lines(skeleton);
+    x_symmetry(im)];
 
     function num_pts = x_symmetry(im)
         [m,n] = size(im);
@@ -14,7 +24,7 @@ function data = compute_features(im)
             num_pts = 0;
             for i=1:m
                 for j=1:tries
-                    if sign(im(i,avg+j)) == sign(im(i,avg-j))
+                    if sign(im(i,avg+j)) == sign(im(i,avg-j)) == 1.0
                         num_pts = num_pts + 1;
                     end
                 end
@@ -59,6 +69,57 @@ function data = compute_features(im)
 
     function longest = longest_horiz_line(curimage)
         longest = longest_vert_line(curimage');
+    end
+
+    function count = num_horiz_lines(curimage)
+        pix_needed = 8;
+        mat = [0 -5 -5 -5 -5 -5 -5 0;
+            1 1 1 1 1 1 1 1;
+            0 -5 -5 -5 -5 -5 -5 0];
+        xc = xcorr2(curimage, mat);
+        xc = sign(xc - pix_needed + 0.1)*0.5 + 0.5;
+        count = sum(sign(sum(xc')));
+    end
+
+    function count = num_vert_lines(curimage)
+%         pix_needed = 12;
+%         mat = ones(20,2);
+%         xc = xcorr2(curimage, mat);
+%         xc = sign(xc - pix_needed + 0.1)*0.5 + 0.5;
+%         count = sum(xc(:));
+        count = num_horiz_lines(curimage');
+    end
+
+    function count = template1(curimage)
+        mat = [1 1 1 1 1 1 1 0 0;
+            -5 -5 -5 -5 -2 0 1 -5 -5;
+            -5 -5 -5 -5 -5 -5 10 -5 -5;
+            -5 -5 -5 -5 -5 -5 10 -5 -5;
+            -5 -5 -5 -5 -5 -5 10 -5 -5];
+        count = 30.0*max(max(xcorr2(curimage(12:end,12:end), mat)));
+    end
+
+    function count = template2(curimage)
+        mat = [0 0 0 0 1 0 0 0 0;
+            0 0 0 0 1 0 0 0 0;
+            0 0 0 0 1 0 0 0 0;
+            -5 -5 -5 -5 1 1 1 1 1];
+        count = max(max(xcorr2(curimage(12:end,12:end), mat)));
+    end
+
+    % TODO doesn't work that reliably
+    function count = num_lines(curimage)
+        [H,theta,rho] = hough(curimage,'Theta',-90:5:89);
+        
+        P = houghpeaks(H,5,'NHoodSize', [5 5], 'threshold',ceil(0.6*max(H(:))));
+        lines = houghlines(curimage,theta,rho,P,'FillGap',10,'MinLength',8);
+        
+        count = 0;
+        for k = 1:length(lines)
+            if isfield(lines(k),'point1')
+                count = count + 1;
+            end
+        end
     end
 
 end

@@ -14,21 +14,40 @@ load('nndata')
 sample_inputs = data_sample_inputs;
 sample_outputs = data_sample_outputs;
 
-numHiddenNeurons = 20;  % Adjust as desired
+best_performance = 1;
+for ttt=1:100
+
+numHiddenNeurons = 10;  % Adjust as desired
 net = newpr(sample_inputs,sample_outputs,numHiddenNeurons);
-net.divideParam.trainRatio = 70/100;  % Adjust as desired
-net.divideParam.valRatio = 15/100;  % Adjust as desired
-net.divideParam.testRatio = 15/100;  % Adjust as desired
+net.trainParam.max_fail = 20;
+net.divideParam.trainRatio = 80/100;  % Adjust as desired
+net.divideParam.valRatio = 20/100;  % Adjust as desired
+net.divideParam.testRatio = 0/100;  % Adjust as desired
 
 % Train and Apply Network
 [net,tr] = train(net,sample_inputs,sample_outputs);
-outputs = sim(net,sample_inputs);
+%outputs = sim(net,sample_inputs);
+
+performance = tr.perf(end);
+if performance < best_performance
+    best_performance = performance;
+    best_net = net;
+    best_tr = tr;
+end
+
+if mod(ttt,10) == 0
+    sprintf('Iteration %d: %f', ttt, best_performance)
+    
+end
 
 % Plot
-plotperf(tr)
-plotconfusion(sample_outputs,outputs)
+%plotperf(tr)
+%plotconfusion(sample_outputs,outputs)
 
-save('ocr_neural_network', 'net');
+end
+compet(sim(best_net, sample_inputs(:,1)))
+
+save('ocr_neural_network', 'best_net');
 
 
 

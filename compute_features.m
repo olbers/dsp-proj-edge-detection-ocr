@@ -90,6 +90,7 @@ data = [sum(skeleton(:));
         count = num_horiz_lines(curimage');
     end
 
+    % Specifically for differentiating C's and G's
     function count = template1(curimage)
         mat = [1 1 1 1 1 1 1 0 0;
             -5 -5 -5 -5 -2 0 1 -5 -5;
@@ -99,6 +100,7 @@ data = [sum(skeleton(:));
         count = 30.0*max(max(xcorr2(curimage(12:end,12:end), mat)));
     end
 
+    % Separate L's from shapes with T like structure
     function count = template2(curimage)
         mat = [0 0 0 0 1 0 0 0 0;
             0 0 0 0 1 0 0 0 0;

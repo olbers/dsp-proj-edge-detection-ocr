@@ -2,6 +2,10 @@
 function [newim skeleton] = preprocess_image(source_im)
 crop_size = [20 20];
 
+if source_im(1) > 0.8
+    source_im = source_im * -1 + 1;
+end
+
 % Try to get rid of some serifs -- kill pixels with only 1 white neighbor
 [m,n] = size(source_im);
 mark_for_delete = zeros(m,n);

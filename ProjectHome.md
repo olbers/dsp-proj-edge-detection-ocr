@@ -1,0 +1,1 @@
+Exploring basic techniques in image processing such as smoothening (low pass filtering) and edge detection (high pass filtering) and its applications to "crispening" an image, as well as some basic optical character recognition.
